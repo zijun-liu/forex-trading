@@ -1,0 +1,59 @@
+pair: USDJPY
+
+symbols:
+  fx: "JPY=X"
+  us_10y: "^TNX"
+  us_2y: "2YY=F"
+  us_3m: "^IRX"
+  vix: "^VIX"
+  dxy: "DX-Y.NYB"
+  oil: "CL=F"
+
+fred_series:
+  fed_funds: "FEDFUNDS"
+  us_cpi: "CPIAUCSL"
+  us_10y_yield: "DGS10"
+  us_2y_yield: "DGS2"
+  japan_cpi: "JPNCPIALLMINMEI"
+  japan_policy_rate: "IRSTCI01JPM156N"
+
+intervention:
+  price_threshold: 155.0
+  velocity_threshold_pct: 3.0
+  velocity_window_days: 5
+  vol_percentile_threshold: 75
+
+regime:
+  vix_risk_off_threshold: 25
+  yield_spread_carry_threshold: 3.0
+  vol_percentile_carry_max: 50
+
+risk:
+  capital: 100000
+  risk_per_trade_pct: 1.0
+  pip_value: 0.01
+
+confidence:
+  llm_adjustment_cap: 15
+
+news:
+  rss_feeds:
+    - url: "https://www.forexlive.com/feed/news"
+      name: "ForexLive"
+    - url: "https://www.fxstreet.com/rss/news"
+      name: "FXStreet"
+  event_types:
+    - monetary_policy
+    - economic_data
+    - geopolitical
+    - intervention
+    - risk_sentiment
+
+memory:
+  short_term_days: 90
+  history_lookback_years: 5
+
+llm:
+  model: "openai/gpt-4o-mini"
+  temperature: 0.3
+  max_tokens: 4000

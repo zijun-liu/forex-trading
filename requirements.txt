@@ -1,0 +1,16 @@
+openai>=1.0
+yfinance
+pandas
+numpy
+ta
+fredapi
+feedparser
+pydantic>=2.0
+python-dotenv
+requests
+rich
+diskcache
+apscheduler
+structlog
+pyarrow
+pyyaml
