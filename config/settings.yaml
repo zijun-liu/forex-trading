@@ -57,3 +57,6 @@ llm:
   model: "openai/gpt-4o-mini"
   temperature: 0.3
   max_tokens: 4000
+
+backtest:
+  hold_period_days: 6   # Optimal: Sharpe 1.61, 2120 pips, lower drawdown vs 5 days

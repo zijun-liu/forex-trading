@@ -14,6 +14,9 @@ MACRO_SERIES = {
     "us_cpi_yoy": "CPIAUCSL",
     "us_10y_yield": "DGS10",
     "us_2y_yield": "DGS2",
+    "jp_cpi_yoy": "JPNCPIALLMINMEI",
+    "jp_rate": "IRSTCI01JPM156N",
+    "jgb_10y": "IRLTLT01JPM156N",
 }
 MACRO_CACHE_TTL = 12 * 3600
 
@@ -53,18 +56,26 @@ class FredClient:
         def _fetch() -> dict[str, float]:
             result: dict[str, float] = {}
             for key, sid in MACRO_SERIES.items():
-                if key == "us_cpi_yoy":
-                    cpi = self._fred.get_series(sid)
-                    if len(cpi) < 13:
-                        raise ValueError(f"CPIAUCSL has insufficient data for YoY: {len(cpi)} points")
-                    current = float(cpi.iloc[-1])
-                    prior_year = float(cpi.iloc[-13])
-                    result[key] = (current / prior_year - 1.0) * 100.0
+                if key in ("us_cpi_yoy", "jp_cpi_yoy"):
+                    try:
+                        cpi = self._fred.get_series(sid).dropna()
+                        if len(cpi) < 13:
+                            logger.warning("cpi_insufficient_data", series=sid, points=len(cpi))
+                            continue
+                        current = float(cpi.iloc[-1])
+                        prior_year = float(cpi.iloc[-13])
+                        result[key] = (current / prior_year - 1.0) * 100.0
+                    except Exception as e:
+                        logger.warning("cpi_fetch_failed", series=sid, error=str(e))
                 else:
-                    s = self._fred.get_series(sid).dropna()
-                    if s.empty:
-                        raise ValueError(f"Empty series for {sid}")
-                    result[key] = float(s.iloc[-1])
+                    try:
+                        s = self._fred.get_series(sid).dropna()
+                        if s.empty:
+                            logger.warning("empty_series", series=sid)
+                            continue
+                        result[key] = float(s.iloc[-1])
+                    except Exception as e:
+                        logger.warning("series_fetch_failed", series=sid, error=str(e))
             return result
 
         try:

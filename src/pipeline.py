@@ -66,11 +66,11 @@ class ForexAdvisorPipeline:
         macro_features = compute_macro(
             us_10y=yields.get("us_10y"),
             us_2y=yields.get("us_2y"),
-            jgb_10y=None,  # not freely available via yfinance
+            jgb_10y=macro_snapshot.get("jgb_10y"),
             us_cpi=macro_snapshot.get("us_cpi_yoy"),
-            jp_cpi=None,
+            jp_cpi=macro_snapshot.get("jp_cpi_yoy"),
             us_rate=macro_snapshot.get("fed_funds_rate"),
-            jp_rate=None,
+            jp_rate=macro_snapshot.get("jp_rate"),
             dxy_history=dxy_hist,
             oil_usdjpy_history=oil_usdjpy,
         )

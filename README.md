@@ -5,7 +5,7 @@ A deterministic quant engine with LLM reasoning for JPY/USD forex trading analys
 ## Architecture
 
 ```
-Data Layer (yfinance, FRED, RSS, CFTC)
+Data Layer (yfinance, FRED [US + Japan macro], RSS, CFTC)
         |
 Feature Engine (deterministic)
   - Technical: SMA, MACD, RSI, ATR, Bollinger, S/R
@@ -56,11 +56,19 @@ python -m src.backtesting.simulator
 # Custom period and holding period
 python -m src.backtesting.simulator --period 2y --hold-days 10
 
+# Custom spread cost and stop-loss distance
+python -m src.backtesting.simulator --spread-pips 3.0 --stop-atr 1.5
+
 # JSON output
 python -m src.backtesting.simulator --json
 ```
 
-Metrics computed: Sharpe ratio, max drawdown, win rate, profit factor, expectancy, turnover, performance by regime.
+Metrics computed: Sharpe ratio, max drawdown, win rate, profit factor, expectancy, stop-hit rate, turnover, performance by regime.
+
+Backtest parameters:
+- `--hold-days` (default: 6): maximum days to hold a trade before time-based exit
+- `--spread-pips` (default: 2.0): broker spread cost deducted from every trade's PnL
+- `--stop-atr` (default: 2.0): stop-loss placed this many ATRs away from entry price
 
 ## API Keys Required
 

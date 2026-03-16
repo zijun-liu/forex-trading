@@ -34,6 +34,9 @@ def compute_metrics(result: BacktestResult) -> dict[str, Any]:
 
     regime_perf = _performance_by_regime(trades)
 
+    stop_hits = sum(1 for t in trades if getattr(t, "exit_reason", "time") == "stop")
+    stop_hit_rate = stop_hits / len(trades) if trades else 0.0
+
     return {
         "total_trades": len(trades),
         "win_rate": round(win_rate, 4),
@@ -44,6 +47,7 @@ def compute_metrics(result: BacktestResult) -> dict[str, Any]:
         "total_pnl_pips": round(sum(pnls), 2),
         "sharpe_ratio": round(sharpe, 4),
         "max_drawdown_pips": round(max_dd, 2),
+        "stop_hit_rate": round(stop_hit_rate, 4),
         "turnover": round(turnover, 4),
         "regime_performance": regime_perf,
     }
@@ -119,6 +123,7 @@ def render_metrics(metrics: dict[str, Any]) -> str:
         f"Total PnL:         {metrics.get('total_pnl_pips', 0):.1f} pips",
         f"Sharpe ratio:      {metrics.get('sharpe_ratio', 0):.4f}",
         f"Max drawdown:      {metrics.get('max_drawdown_pips', 0):.1f} pips",
+        f"Stop-hit rate:     {metrics.get('stop_hit_rate', 0):.1%}",
         f"Turnover:          {metrics.get('turnover', 0):.1%}",
         "",
         "--- Performance by Regime ---",

@@ -24,10 +24,12 @@ class TradeRecord:
     direction: str = "neutral"
     entry_price: float = 0.0
     exit_price: float = 0.0
+    stop_loss_price: float = 0.0
     pnl_pips: float = 0.0
     regime: str = "normal"
     tech_bias: float = 0.0
     conviction: float = 0.0
+    exit_reason: str = "time"  # "time" or "stop"
 
 
 @dataclass
@@ -64,15 +66,38 @@ def deterministic_signal(tech: TechnicalSignal, regime_name: str) -> tuple[str, 
     return direction, conviction
 
 
+def _exit_trade(
+    active_trade: TradeRecord,
+    exit_date: date,
+    exit_price: float,
+    result: BacktestResult,
+    spread_pips: float = 0.0,
+    exit_reason: str = "time",
+) -> None:
+    """Record exit and append to result."""
+    active_trade.exit_date = exit_date
+    active_trade.exit_price = exit_price
+    active_trade.exit_reason = exit_reason
+    if active_trade.direction == "long_jpyusd":
+        active_trade.pnl_pips = (exit_price - active_trade.entry_price) / 0.01 - spread_pips
+    elif active_trade.direction == "short_jpyusd":
+        active_trade.pnl_pips = (active_trade.entry_price - exit_price) / 0.01 - spread_pips
+    result.trades.append(active_trade)
+
+
 def run_backtest(
     price_history: pd.DataFrame,
     settings: dict | None = None,
     min_data_points: int = 200,
     hold_period_days: int = 5,
+    spread_pips: float = 2.0,
+    stop_atr_multiple: float = 2.0,
 ) -> BacktestResult:
     """Replay deterministic signals over historical price data.
 
     No LLM calls -- purely algorithmic for speed and reproducibility.
+    spread_pips: broker spread cost deducted from every trade's PnL on exit.
+    stop_atr_multiple: stop-loss is placed this many ATRs away from entry.
     """
     cfg = settings or get_settings()
     result = BacktestResult()
@@ -133,34 +158,38 @@ def run_backtest(
         })
 
         if active_trade is not None:
-            days_held = (current_date - active_trade.entry_date).days
-            if days_held >= hold_period_days:
-                active_trade.exit_date = current_date
-                active_trade.exit_price = price
-                if active_trade.direction == "long_jpyusd":
-                    active_trade.pnl_pips = (price - active_trade.entry_price) / 0.01
-                elif active_trade.direction == "short_jpyusd":
-                    active_trade.pnl_pips = (active_trade.entry_price - price) / 0.01
-                result.trades.append(active_trade)
+            bar_low = window["Low"].iloc[-1]
+            bar_high = window["High"].iloc[-1]
+            stop_hit = False
+            if active_trade.direction == "long_jpyusd" and bar_low <= active_trade.stop_loss_price:
+                _exit_trade(active_trade, current_date, active_trade.stop_loss_price, result, spread_pips, "stop")
                 active_trade = None
+                stop_hit = True
+            elif active_trade.direction == "short_jpyusd" and bar_high >= active_trade.stop_loss_price:
+                _exit_trade(active_trade, current_date, active_trade.stop_loss_price, result, spread_pips, "stop")
+                active_trade = None
+                stop_hit = True
+
+            if not stop_hit and active_trade is not None:
+                days_held = (current_date - active_trade.entry_date).days
+                if days_held >= hold_period_days:
+                    _exit_trade(active_trade, current_date, price, result, spread_pips, "time")
+                    active_trade = None
 
         if active_trade is None and direction != "neutral" and conviction > 30:
+            stop_distance = tech.atr * stop_atr_multiple
+            stop_price = (price - stop_distance) if direction == "long_jpyusd" else (price + stop_distance)
             active_trade = TradeRecord(
                 entry_date=current_date,
                 direction=direction,
                 entry_price=price,
+                stop_loss_price=stop_price,
                 regime=regime.regime.value,
                 tech_bias=tech.bias,
                 conviction=conviction,
             )
 
     if active_trade is not None:
-        active_trade.exit_date = current_date
-        active_trade.exit_price = price_history["Close"].iloc[-1]
-        if active_trade.direction == "long_jpyusd":
-            active_trade.pnl_pips = (active_trade.exit_price - active_trade.entry_price) / 0.01
-        elif active_trade.direction == "short_jpyusd":
-            active_trade.pnl_pips = (active_trade.entry_price - active_trade.exit_price) / 0.01
-        result.trades.append(active_trade)
+        _exit_trade(active_trade, current_date, price_history["Close"].iloc[-1], result, spread_pips, "time")
 
     return result

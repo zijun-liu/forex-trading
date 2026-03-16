@@ -16,7 +16,9 @@ console = Console()
 def main() -> None:
     parser = argparse.ArgumentParser(description="Run backtest on USD/JPY historical data")
     parser.add_argument("--period", default="5y", help="Data period (default: 5y)")
-    parser.add_argument("--hold-days", type=int, default=5, help="Trade holding period in days")
+    parser.add_argument("--hold-days", type=int, default=6, help="Trade holding period in days")
+    parser.add_argument("--spread-pips", type=float, default=2.0, help="Broker spread cost in pips (default: 2.0)")
+    parser.add_argument("--stop-atr", type=float, default=2.0, help="Stop-loss distance as ATR multiple (default: 2.0)")
     parser.add_argument("--json", action="store_true", help="Output JSON metrics")
     args = parser.parse_args()
 
@@ -28,7 +30,7 @@ def main() -> None:
         return
 
     console.print(f"[dim]Running backtest on {len(df)} days of data...[/dim]")
-    result = run_backtest(df, hold_period_days=args.hold_days)
+    result = run_backtest(df, hold_period_days=args.hold_days, spread_pips=args.spread_pips, stop_atr_multiple=args.stop_atr)
     metrics = compute_metrics(result)
 
     if args.json:

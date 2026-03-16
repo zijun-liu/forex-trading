@@ -68,8 +68,13 @@ def compute_risk(
     risk_pct = risk_cfg.get("risk_per_trade_pct", 1.0)
     stop_distance = atr * 2
     pip_value = risk_cfg.get("pip_value", 0.01)
-    position_size_lots = (capital * risk_pct / 100) / (stop_distance * 100) if atr > 0 else 0.0
-    stop_distance_pips = (stop_distance / pip_value) if pip_value > 0 else None
+    # USD/JPY position sizing: risk_dollars / (stop_pips * pip_value_per_lot)
+    # One standard lot of USD/JPY = pip_value_per_lot of $1000 (i.e. $10 per pip at 0.01 pip size)
+    risk_dollars = capital * risk_pct / 100
+    stop_pips = (stop_distance / pip_value) if pip_value > 0 else None
+    pip_value_per_lot = 1000 * pip_value  # $10 per pip for a standard lot at 0.01 pip size
+    position_size_lots = (risk_dollars / (stop_pips * pip_value_per_lot)) if (atr > 0 and stop_pips) else 0.0
+    stop_distance_pips = stop_pips
 
     warnings = []
     if intervention_risk == "HIGH":

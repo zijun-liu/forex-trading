@@ -18,11 +18,14 @@ def get_cache() -> diskcache.Cache:
     return _cache
 
 
+_MISSING = object()
+
+
 def cached_get(key: str, fn, ttl_seconds: int = 3600) -> Any:
     """Return cached value for *key*, or call *fn()* and cache the result."""
     cache = get_cache()
-    val = cache.get(key)
-    if val is not None:
+    val = cache.get(key, default=_MISSING)
+    if val is not _MISSING:
         return val
     val = fn()
     cache.set(key, val, expire=ttl_seconds)
